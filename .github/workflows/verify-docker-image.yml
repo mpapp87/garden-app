@@ -1,0 +1,25 @@
+name: Verify published Docker image
+on:
+  push:
+    paths:
+      - '.github/workflows/verify-docker-image.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Pull published image on a separate machine
+        run: docker pull papptona/garden-app@sha256:e7909d5b25298508da0526ef78c1beb558a76245a023f66f6e52f43eee8e0b5e
+      - name: Run regression tests inside the published image
+        run: docker run --rm papptona/garden-app@sha256:e7909d5b25298508da0526ef78c1beb558a76245a023f66f6e52f43eee8e0b5e python -m unittest -v
+      - name: Verify interactive console output
+        shell: bash
+        run: |
+          set -euo pipefail
+          result=$(printf 'summer\nvegetable\n' | docker run --rm -i papptona/garden-app@sha256:e7909d5b25298508da0526ef78c1beb558a76245a023f66f6e52f43eee8e0b5e)
+          printf '%s\n' "$result"
+          grep -Fq 'Water your plants regularly and provide some shade.' <<< "$result"
+          grep -Fq 'Keep an eye out for pests!' <<< "$result"
